@@ -387,6 +387,13 @@
   }
   .comp-save:active{background:var(--sea2);}
   .comp-save:disabled{opacity:.55;cursor:default;}
+  .comp-editnote{font-family:"Courier New",monospace;font-size:11px;color:#9a6a00;background:#f6e9d8;
+    border:1px solid #e6cfa0;border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.4;}
+  .comp-cancel{
+    width:100%;margin-top:8px;background:transparent;color:var(--muted);border:1px solid var(--line);
+    border-radius:9px;font-family:"Courier New",monospace;font-size:12px;padding:10px;cursor:pointer;
+  }
+  .comp-cancel:active{background:var(--paper2);}
   .comp-status{font-family:"Courier New",monospace;font-size:11.5px;text-align:center;margin-top:10px;min-height:15px;color:var(--muted);}
   .comp-status.err{color:var(--stamp);}
   .comp-status.ok{color:var(--ok);}
@@ -577,7 +584,7 @@
     <!-- Sub-aba: Comprovantes -->
     <div class="vault-view" id="view-comp">
       <div class="comp-add">
-        <div class="ca-h">📎 Anexar comprovante</div>
+        <div class="ca-h" id="caH">📎 Anexar comprovante</div>
         <label>Título</label>
         <input type="text" id="cTitle" placeholder="Ex: Voo Madrid → Londres (FR 348)" maxlength="90">
         <label>Categoria</label>
@@ -593,7 +600,9 @@
         <textarea id="cNotes" placeholder="Ex: check-in online 24h antes; assento 14C" maxlength="500"></textarea>
         <label>Arquivo (PDF ou imagem, opcional)</label>
         <input type="file" id="cFile" accept="application/pdf,image/*">
+        <div class="comp-editnote" id="cEditNote" style="display:none;"></div>
         <button class="comp-save" id="cSave" onclick="addComp()">Salvar comprovante</button>
+        <button class="comp-cancel" id="cCancel" onclick="cancelEdit()" style="display:none;">Cancelar edição</button>
         <div class="comp-status" id="cStatus"></div>
       </div>
       <div id="compList"></div>
@@ -1027,7 +1036,41 @@ async function idbAll(){try{const db=await idbOpen();return await new Promise((r
 
 function setStatus(msg,cls){const s=document.getElementById("cStatus");s.textContent=msg||"";s.className="comp-status"+(cls?" "+cls:"");}
 
-/* --- salvar um comprovante --- */
+/* --- estado de edição --- */
+let EDIT_ID=null, EDIT_ROW=null, EDIT_META=null;
+
+/* entra em modo edição: preenche o form com os dados do item */
+function editComp(row,m){
+  EDIT_ID=row.id;EDIT_ROW=row;EDIT_META=m;
+  document.getElementById("cTitle").value=m.title||"";
+  document.getElementById("cCat").value=m.cat||"outro";
+  document.getElementById("cLoc").value=m.loc||"";
+  document.getElementById("cNotes").value=m.notes||"";
+  document.getElementById("cFile").value="";
+  document.getElementById("caH").textContent="✏️ Editar comprovante";
+  document.getElementById("cSave").textContent="Salvar alterações";
+  document.getElementById("cCancel").style.display="block";
+  const en=document.getElementById("cEditNote");
+  en.style.display="block";
+  en.textContent=m.filename?("📎 Arquivo atual: "+m.filename+" — só escolha outro se quiser trocar."):
+                             "Sem arquivo anexado — você pode anexar um agora, se quiser.";
+  setStatus("");
+  document.querySelector("#view-comp .comp-add").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* sai do modo edição e limpa o form */
+function cancelEdit(){
+  EDIT_ID=null;EDIT_ROW=null;EDIT_META=null;
+  document.getElementById("cTitle").value="";document.getElementById("cLoc").value="";
+  document.getElementById("cNotes").value="";document.getElementById("cFile").value="";
+  document.getElementById("cCat").value="voo";
+  document.getElementById("caH").textContent="📎 Anexar comprovante";
+  document.getElementById("cSave").textContent="Salvar comprovante";
+  document.getElementById("cCancel").style.display="none";
+  document.getElementById("cEditNote").style.display="none";
+}
+
+/* --- salvar (adicionar OU editar) um comprovante --- */
 async function addComp(){
   if(!SESSION_PW){setStatus("Sessão bloqueada.","err");return;}
   const title=document.getElementById("cTitle").value.trim();
@@ -1040,29 +1083,51 @@ async function addComp(){
   if(!sb){setStatus("Sem conexão com a nuvem.","err");return;}
   if(file && file.size>25*1024*1024){setStatus("Arquivo muito grande (máx 25 MB).","err");return;}
   const btn=document.getElementById("cSave");btn.disabled=true;
-  setStatus("Criptografando e enviando…");
+  setStatus(EDIT_ID?"Salvando alterações…":"Criptografando e enviando…");
   try{
-    const id=crypto.randomUUID();
-    let file_path="";
-    if(file){
-      file_path=id+".enc";
-      const enc=await encBytes(SESSION_PW,await file.arrayBuffer());
-      const up=await sb.storage.from("comprovantes").upload(file_path,new Blob([enc]),{contentType:"application/octet-stream",upsert:false});
-      if(up.error) throw up.error;
+    if(EDIT_ID){
+      /* ---------- EDITAR ---------- */
+      const id=EDIT_ID;
+      let file_path=EDIT_ROW.file_path||"";
+      let filename=(EDIT_META&&EDIT_META.filename)||"", mime=(EDIT_META&&EDIT_META.mime)||"";
+      let oldToDelete=null;
+      if(file){
+        const np=crypto.randomUUID()+".enc";
+        const enc=await encBytes(SESSION_PW,await file.arrayBuffer());
+        const up=await sb.storage.from("comprovantes").upload(np,new Blob([enc]),{contentType:"application/octet-stream"});
+        if(up.error) throw up.error;
+        if(file_path) oldToDelete=file_path;
+        file_path=np;filename=file.name;mime=file.type||"application/octet-stream";
+      }
+      const meta=await encStr(SESSION_PW,JSON.stringify({title,cat,loc,notes,filename,mime}));
+      const up2=await sb.from("comprovantes").update({file_path,meta}).eq("id",id);
+      if(up2.error) throw up2.error;
+      if(oldToDelete){try{await sb.storage.from("comprovantes").remove([oldToDelete]);}catch(e){}}
+      let encForLocal=null;if(file){try{encForLocal=await encBytes(SESSION_PW,await file.arrayBuffer());}catch(e){}}
+      idbPut({id,file_path,meta,enc:encForLocal});
+      cancelEdit();
+      setStatus("Alterações salvas ✓","ok");
+      loadComps();
+    }else{
+      /* ---------- ADICIONAR ---------- */
+      const id=crypto.randomUUID();
+      let file_path="";
+      if(file){
+        file_path=crypto.randomUUID()+".enc";
+        const enc=await encBytes(SESSION_PW,await file.arrayBuffer());
+        const up=await sb.storage.from("comprovantes").upload(file_path,new Blob([enc]),{contentType:"application/octet-stream",upsert:false});
+        if(up.error) throw up.error;
+      }
+      const meta=await encStr(SESSION_PW,JSON.stringify({title,cat,loc,notes,filename:file?file.name:"",mime:file?(file.type||"application/octet-stream"):""}));
+      const ins=await sb.from("comprovantes").insert({id,file_path,meta});
+      if(ins.error) throw ins.error;
+      let encForLocal=null;if(file){try{encForLocal=await encBytes(SESSION_PW,await file.arrayBuffer());}catch(e){}}
+      idbPut({id,file_path,meta,enc:encForLocal});
+      document.getElementById("cTitle").value="";document.getElementById("cLoc").value="";
+      document.getElementById("cNotes").value="";fileEl.value="";
+      setStatus("Salvo ✓","ok");
+      loadComps();
     }
-    const metaObj={title,cat,loc,notes,filename:file?file.name:"",mime:file?(file.type||"application/octet-stream"):""};
-    const meta=await encStr(SESSION_PW,JSON.stringify(metaObj));
-    const ins=await sb.from("comprovantes").insert({id,file_path,meta});
-    if(ins.error) throw ins.error;
-    /* espelho local (best-effort): guarda também os bytes cifrados do arquivo */
-    let encForLocal=null;
-    if(file){try{encForLocal=await encBytes(SESSION_PW,await file.arrayBuffer());}catch(e){}}
-    idbPut({id,file_path,meta,enc:encForLocal});
-    /* limpa o form */
-    document.getElementById("cTitle").value="";document.getElementById("cLoc").value="";
-    document.getElementById("cNotes").value="";fileEl.value="";
-    setStatus("Salvo ✓","ok");
-    loadComps();
   }catch(e){
     setStatus("Erro ao salvar: "+(e.message||e),"err");
   }finally{
@@ -1113,11 +1178,13 @@ function renderComp(row,m){
     ${m.notes?`<div class="comp-notes"></div>`:""}
     <div class="comp-foot">
       ${hasFile?`<button class="comp-btn view">👁️ Ver arquivo</button>`:`<span class="comp-file-none">sem arquivo anexado</span>`}
+      <button class="comp-btn ghost edit">✏️ Editar</button>
     </div>`;
   el.querySelector(".comp-title").textContent=m.title||"(sem título)";
   if(m.loc) el.querySelector(".comp-loc").textContent="🔖 "+m.loc;
   if(m.notes) el.querySelector(".comp-notes").textContent=m.notes;
   el.querySelector(".comp-del").addEventListener("click",()=>delComp(row.id,row.file_path,el));
+  el.querySelector(".edit").addEventListener("click",()=>editComp(row,m));
   if(hasFile){
     el.querySelector(".view").addEventListener("click",(ev)=>viewComp(row,m,ev.target));
   }
