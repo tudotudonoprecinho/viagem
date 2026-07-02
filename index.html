@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1c3d5a">
+<title>Diário de Bordo · Europa 2026</title>
+<style>
+  :root{
+    --ink:#1c2b36;        /* tinta escura */
+    --sea:#1c3d5a;        /* azul mar profundo */
+    --sea2:#2d5f7f;
+    --stamp:#b23a48;      /* vermelho carimbo */
+    --gold:#c99700;       /* selo dourado */
+    --sand:#f3ede0;      /* papel */
+    --paper:#f6f1e6;      /* papel claro */
+    --paper2:#ece3d2;
+    --moss:#5b7553;       /* verde irlanda */
+    --line:#d8ccb4;
+    --muted:#7c7161;
+    --ok:#3f7d54;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:"Georgia","Times New Roman",serif;
+    background:var(--paper);
+    color:var(--ink);
+    padding-bottom:78px;
+    max-width:600px;margin:0 auto;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* textura papel */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(circle at 20% 30%, rgba(0,0,0,.02) 0, transparent 40%),
+                     radial-gradient(circle at 80% 70%, rgba(0,0,0,.025) 0, transparent 45%);
+    max-width:600px;margin:0 auto;
+  }
+  .wrap{position:relative;z-index:1;}
+  h1,h2,h3{font-family:"Georgia",serif;margin:0;}
+  .mono{font-family:"Courier New",monospace;}
+
+  /* ============ HEADER ============ */
+  header{
+    background:linear-gradient(160deg,var(--sea),var(--sea2));
+    color:var(--paper);
+    padding:22px 20px 26px;
+    position:relative;overflow:hidden;
+    border-bottom:3px solid var(--gold);
+  }
+  header::after{ /* carimbo */
+    content:"★ EUROPA ★";
+    position:absolute;right:-14px;top:16px;
+    font-family:"Courier New",monospace;font-weight:bold;
+    color:rgba(201,151,0,.35);
+    border:2.5px solid rgba(201,151,0,.35);
+    border-radius:50%;
+    width:96px;height:96px;display:flex;align-items:center;justify-content:center;
+    text-align:center;font-size:11px;letter-spacing:1px;
+    transform:rotate(-14deg);line-height:1.2;padding:6px;
+  }
+  .eyebrow{font-family:"Courier New",monospace;font-size:11px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+  header h1{font-size:27px;line-height:1.05;font-style:italic;letter-spacing:.3px;}
+  header .route{font-size:12.5px;margin-top:10px;opacity:.9;font-family:"Courier New",monospace;letter-spacing:.5px;}
+  .who{margin-top:4px;font-size:12px;opacity:.75;}
+
+  /* ============ COUNTDOWN ============ */
+  .countdown{
+    display:flex;gap:8px;margin-top:16px;
+  }
+  .cd-box{
+    flex:1;background:rgba(255,255,255,.1);
+    border:1px solid rgba(201,151,0,.4);
+    border-radius:8px;padding:8px 4px;text-align:center;
+    backdrop-filter:blur(2px);
+  }
+  .cd-num{font-size:22px;font-weight:bold;font-family:"Courier New",monospace;color:#fff;line-height:1;}
+  .cd-lbl{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;opacity:.75;margin-top:4px;}
+
+  /* ============ TABS / PAGES ============ */
+  .page{display:none;padding:18px 16px 30px;animation:fade .35s ease;}
+  .page.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  .section-eyebrow{font-family:"Courier New",monospace;font-size:10.5px;letter-spacing:2.5px;
+    text-transform:uppercase;color:var(--stamp);margin-bottom:3px;}
+  .section-title{font-size:21px;font-style:italic;margin-bottom:14px;color:var(--sea);}
+
+  /* ============ NAV ============ */
+  nav{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+    width:100%;max-width:600px;
+    background:var(--ink);
+    display:flex;justify-content:space-around;
+    padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+    z-index:50;border-top:2px solid var(--gold);
+  }
+  .nav-btn{
+    background:none;border:none;color:#9fb0bd;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-family:"Courier New",monospace;font-size:9.5px;letter-spacing:.5px;
+    cursor:pointer;padding:4px 6px;border-radius:8px;flex:1;
+    transition:color .2s;
+  }
+  .nav-btn .ic{font-size:19px;line-height:1;}
+  .nav-btn.active{color:var(--gold);}
+  .nav-btn.active .ic{transform:translateY(-1px);}
+
+  /* ============ DAY CARDS ============ */
+  .day{
+    background:var(--paper);border:1px solid var(--line);
+    border-left:5px solid var(--sea);
+    border-radius:10px;margin-bottom:12px;overflow:hidden;
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+  }
+  .day.es{border-left-color:var(--gold);}
+  .day.uk{border-left-color:var(--sea2);}
+  .day.sco{border-left-color:#4a6b8a;}
+  .day.ie{border-left-color:var(--moss);}
+  .day.nir{border-left-color:var(--stamp);}
+  .day-head{
+    display:flex;align-items:center;gap:12px;padding:13px 14px;cursor:pointer;
+    user-select:none;
+  }
+  .day-date{
+    text-align:center;min-width:46px;
+  }
+  .day-d{font-size:20px;font-weight:bold;font-family:"Courier New",monospace;color:var(--sea);line-height:1;}
+  .day-m{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:2px;}
+  .day-info{flex:1;min-width:0;}
+  .day-city{font-size:15.5px;font-weight:bold;color:var(--ink);}
+  .day-sub{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .day-flag{font-size:20px;}
+  .chev{color:var(--muted);font-size:13px;transition:transform .3s;font-family:monospace;}
+  .day.open .chev{transform:rotate(90deg);}
+  .day-body{
+    max-height:0;overflow:hidden;transition:max-height .4s ease;
+    background:rgba(255,255,255,.5);
+  }
+  .day.open .day-body{max-height:600px;}
+  .day-body-inner{padding:4px 16px 16px;border-top:1px dashed var(--line);}
+  .day-act{font-size:13.5px;line-height:1.6;margin:10px 0 0;color:var(--ink);}
+  .day-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+  .tag{font-family:"Courier New",monospace;font-size:10.5px;padding:4px 9px;border-radius:20px;
+    background:var(--paper2);color:var(--sea);border:1px solid var(--line);}
+  .tag.move{background:#e7eef3;color:var(--sea2);}
+  .tag.sleep{background:#eef2ea;color:var(--moss);}
+  .tag.book{background:#f6e9d8;color:#9a6a00;border-color:#e6cfa0;}
+
+  /* ============ HOTEL / STAMP CARDS ============ */
+  .stamp-card{
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin-bottom:11px;position:relative;
+    box-shadow:0 1px 3px rgba(0,0,0,.05);
+  }
+  .stamp-card .ok-stamp{
+    position:absolute;right:10px;top:10px;
+    font-family:"Courier New",monospace;font-size:9px;font-weight:bold;letter-spacing:1px;
+    color:var(--ok);border:2px solid var(--ok);border-radius:5px;padding:2px 6px;
+    transform:rotate(-8deg);opacity:.8;
+  }
+  .sc-city{font-size:12px;font-family:"Courier New",monospace;letter-spacing:1px;color:var(--stamp);text-transform:uppercase;}
+  .sc-name{font-size:16px;font-weight:bold;margin:3px 0;color:var(--ink);padding-right:70px;}
+  .sc-dates{font-size:12px;color:var(--muted);font-family:"Courier New",monospace;}
+  .sc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;
+    border-top:1px dashed var(--line);padding-top:9px;}
+  .sc-price{font-size:14px;font-weight:bold;color:var(--sea);}
+  .sc-nights{font-size:11px;color:var(--muted);}
+
+  /* ============ CHECKLIST ============ */
+  .todo-group{margin-bottom:22px;}
+  .todo-h{font-family:"Courier New",monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;
+    color:var(--stamp);margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid var(--line);}
+  .todo{
+    display:flex;align-items:flex-start;gap:11px;padding:11px 12px;margin-bottom:7px;
+    background:var(--paper);border:1px solid var(--line);border-radius:9px;cursor:pointer;
+    transition:background .15s;
+  }
+  .todo:active{background:var(--paper2);}
+  .box{
+    width:21px;height:21px;border:2px solid var(--sea);border-radius:5px;flex-shrink:0;margin-top:1px;
+    display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;
+    transition:background .15s;
+  }
+  .todo.done .box{background:var(--ok);border-color:var(--ok);}
+  .todo.done .todo-txt{text-decoration:line-through;color:var(--muted);}
+  .todo-body{flex:1;min-width:0;}
+  .todo-txt{font-size:13.5px;line-height:1.4;}
+  .todo-note{font-size:11px;color:var(--muted);margin-top:2px;}
+  .todo-del{
+    background:none;border:none;color:var(--muted);font-size:19px;line-height:1;
+    padding:2px 4px;cursor:pointer;flex-shrink:0;opacity:.5;font-family:Georgia,serif;
+  }
+  .todo-del:active{opacity:1;color:var(--stamp);}
+  /* form adicionar */
+  .add-form{
+    display:flex;gap:8px;margin:4px 0 10px;
+  }
+  .add-form input{
+    flex:1;font-family:Georgia,serif;font-size:13.5px;padding:11px 12px;
+    border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);
+    min-width:0;
+  }
+  .add-form input:focus{outline:none;border-color:var(--sea);}
+  .add-btn{
+    background:var(--sea);color:var(--paper);border:none;border-radius:9px;
+    font-family:"Courier New",monospace;font-size:20px;font-weight:bold;
+    width:46px;flex-shrink:0;cursor:pointer;line-height:1;
+  }
+  .add-btn:active{background:var(--sea2);}
+  .my-empty{font-size:12px;color:var(--muted);font-style:italic;padding:4px 2px 8px;}
+
+  /* ============ INFO / REMINDER CARDS ============ */
+  .rem{
+    background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--gold);
+    border-radius:9px;padding:13px 14px;margin-bottom:11px;
+  }
+  .rem.warn{border-left-color:var(--stamp);}
+  .rem.tip{border-left-color:var(--moss);}
+  .rem-t{font-size:14px;font-weight:bold;color:var(--ink);margin-bottom:5px;display:flex;align-items:center;gap:7px;}
+  .rem-b{font-size:12.5px;line-height:1.55;color:#4a4236;}
+  .rem-b b{color:var(--sea);}
+
+  /* flight strip */
+  .flight{
+    display:flex;align-items:center;gap:10px;padding:11px 13px;margin-bottom:8px;
+    background:var(--paper);border:1px solid var(--line);border-radius:9px;
+  }
+  .fl-code{font-family:"Courier New",monospace;font-weight:bold;font-size:12px;color:var(--stamp);
+    background:var(--paper2);padding:3px 7px;border-radius:5px;min-width:62px;text-align:center;}
+  .fl-route{flex:1;font-size:12.5px;}
+  .fl-cities{font-weight:bold;color:var(--ink);}
+  .fl-time{font-size:11px;color:var(--muted);font-family:"Courier New",monospace;margin-top:1px;}
+
+  /* money summary */
+  .money-hero{
+    background:linear-gradient(160deg,var(--sea),var(--sea2));color:var(--paper);
+    border-radius:12px;padding:18px;text-align:center;margin-bottom:16px;
+    border:1px solid var(--gold);
+  }
+  .money-hero .lbl{font-family:"Courier New",monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.8;}
+  .money-hero .val{font-size:32px;font-weight:bold;font-family:"Courier New",monospace;margin-top:5px;}
+  .money-hero .sub{font-size:11px;opacity:.75;margin-top:5px;}
+  .money-row{display:flex;justify-content:space-between;padding:11px 4px;border-bottom:1px dashed var(--line);font-size:13.5px;}
+  .money-row .m-cat{color:var(--ink);}
+  .money-row .m-val{font-weight:bold;color:var(--sea);font-family:"Courier New",monospace;}
+
+  /* city pills quick jump */
+  .quickmap{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch;}
+  .qp{white-space:nowrap;font-family:"Courier New",monospace;font-size:10.5px;padding:6px 11px;border-radius:20px;
+    background:var(--paper);border:1px solid var(--line);color:var(--sea);flex-shrink:0;}
+
+  .fine{font-size:10.5px;color:var(--muted);text-align:center;margin-top:18px;line-height:1.5;font-family:"Courier New",monospace;}
+  .divider-stamp{text-align:center;color:var(--line);margin:16px 0;font-size:13px;letter-spacing:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Diário de Bordo</div>
+  <h1>Europa 2026</h1>
+  <div class="route">🇪🇸 → 🏴󠁧󠁢󠁥󠁮󠁧󠁿 → 🏴󠁧󠁢󠁳󠁣󠁴󠁿 → 🇮🇪 → 🇬🇧 → 🇪🇸</div>
+  <div class="who">Gabriel & Dani · 10–30 ago · 21 dias · 19 noites</div>
+  <div class="countdown" id="countdown"></div>
+</header>
+
+<!-- ROTEIRO -->
+<section class="page active" id="roteiro">
+  <div class="section-eyebrow">Itinerário</div>
+  <h2 class="section-title">21 dias, 5 destinos</h2>
+  <div class="quickmap" id="quickmap"></div>
+  <div id="days"></div>
+</section>
+
+<!-- HOTÉIS -->
+<section class="page" id="hoteis">
+  <div class="section-eyebrow">Onde dormir</div>
+  <h2 class="section-title">Hospedagem</h2>
+  <div id="hotels"></div>
+</section>
+
+<!-- VOOS -->
+<section class="page" id="voos">
+  <div class="section-eyebrow">Deslocamentos</div>
+  <h2 class="section-title">Voos & Carro</h2>
+  <div id="flights"></div>
+  <div class="divider-stamp">✦ ✦ ✦</div>
+  <div class="rem tip">
+    <div class="rem-t">🚗 Carro na Irlanda</div>
+    <div class="rem-b">Retirada <b>22/08</b> · Dublin Airport 10h · Devolução <b>28/08</b> 15h. ~1.330 km no total. Leve a <b>PID</b> + CNH. Confirme permissão <b>cross-border</b> (Irlanda do Norte).</div>
+  </div>
+  <div class="rem warn">
+    <div class="rem-t">⏰ 12/08 — saída de madrugada</div>
+    <div class="rem-b">Voo FR 348 sai <b>06:30</b>. Cabify pré-agendado <b>04:00</b> do hotel. Dormir cedo dia 11!</div>
+  </div>
+</section>
+
+<!-- CHECKLIST -->
+<section class="page" id="checklist">
+  <div class="section-eyebrow">Antes de embarcar</div>
+  <h2 class="section-title">Pendências</h2>
+
+  <div class="todo-group">
+    <div class="todo-h">✎ Meus itens</div>
+    <div class="add-form">
+      <input id="addInput" type="text" placeholder="Adicionar item…" maxlength="80"
+             onkeydown="if(event.key==='Enter')addMine()">
+      <button class="add-btn" onclick="addMine()">+</button>
+    </div>
+    <div id="mine"></div>
+  </div>
+
+  <div id="todos"></div>
+  <p class="fine">Suas marcações e itens ficam salvos neste aparelho.</p>
+</section>
+
+<!-- INFO -->
+<section class="page" id="info">
+  <div class="section-eyebrow">Bom saber</div>
+  <h2 class="section-title">Lembretes & $</h2>
+
+  <div class="money-hero">
+    <div class="lbl">Total já reservado</div>
+    <div class="val">R$ 34,5k</div>
+    <div class="sub">voos + 9 hotéis + 3 atrações (sem Air China)</div>
+  </div>
+  <div id="money"></div>
+
+  <div class="divider-stamp">✦ ✦ ✦</div>
+
+  <div class="rem">
+    <div class="rem-t">💳 Câmbio & cartão</div>
+    <div class="rem-b">EUR ≈ <b>R$ 6,20</b> · GBP ≈ <b>R$ 7,20</b> · IOF <b>3,38%</b> (Bradesco). Avise o banco antes de viajar pra não bloquear o cartão.</div>
+  </div>
+  <div class="rem tip">
+    <div class="rem-t">🔌 Tomadas</div>
+    <div class="rem-b">Reino Unido e Irlanda usam tipo <b>G</b> (3 pinos). Espanha usa tipo <b>F</b> (europeu). Leve adaptador universal.</div>
+  </div>
+  <div class="rem tip">
+    <div class="rem-t">🌦️ Clima em agosto</div>
+    <div class="rem-b">Madrid <b>30–38°C</b> (calor seco). Londres/Escócia/Irlanda <b>12–20°C</b> e chuva — leve corta-vento e guarda-chuva compacto.</div>
+  </div>
+  <div class="rem warn">
+    <div class="rem-t">📰 Belfast</div>
+    <div class="rem-b">Confira as notícias da cidade <b>1 semana antes</b>. Sua estadia (26–28/08) fica na zona turística central, longe das áreas afetadas em junho.</div>
+  </div>
+  <div class="rem">
+    <div class="rem-t">✈️ Ryanair — regra de ouro</div>
+    <div class="rem-b">Faça <b>check-in online</b> antes (multa alta no balcão). Tenha o cartão de embarque no celular. Confira dimensões da bagagem de cabine.</div>
+  </div>
+  <div class="rem tip">
+    <div class="rem-t">🍽️ Reserva marcada</div>
+    <div class="rem-b">Almoço no <b>Botín</b> (Madrid, 30/08) — restaurante mais antigo do mundo. Reserve com antecedência.</div>
+  </div>
+
+  <p class="fine">Diário de Bordo · Europa 2026<br>feito para Gabriel & Dani ✦ boa viagem!</p>
+</section>
+
+</div>
+
+<nav>
+  <button class="nav-btn active" data-p="roteiro"><span class="ic">🧭</span>Roteiro</button>
+  <button class="nav-btn" data-p="hoteis"><span class="ic">🛏️</span>Hotéis</button>
+  <button class="nav-btn" data-p="voos"><span class="ic">✈️</span>Voos</button>
+  <button class="nav-btn" data-p="checklist"><span class="ic">✓</span>Checklist</button>
+  <button class="nav-btn" data-p="info"><span class="ic">✦</span>Info</button>
+</nav>
+
+<script>
+/* ---------- DADOS ---------- */
+const DAYS=[
+ {d:"10",m:"ago",dow:"seg",city:"Voo GRU → Madrid",flag:"✈️",zone:"es",sub:"Air China CA898",act:"Embarque no GRU 09:25 → chega Madrid 00:45 (+1). 10h20 de voo.",move:"Air China CA898",sleep:"No avião"},
+ {d:"11",m:"ago",dow:"ter",city:"Madrid",flag:"🇪🇸",zone:"es",sub:"Chegada · descanso · tapas",act:"Chegada de madrugada. Descanso. À tarde: Plaza Mayor + La Latina (tapas). Dormir cedo — jantar até 21h.",sleep:"Hotel Europa"},
+ {d:"12",m:"ago",dow:"qua",city:"Madrid → Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"04:00 Cabify · FR 348",act:"04:00 Cabify → Barajas. FR 348 06:30→07:55. Stansted Express até a cidade. Hotel ~10h. Tarde em Covent Garden.",move:"Ryanair FR 348",sleep:"President Hotel",book:"Cabify 04:00"},
+ {d:"13",m:"ago",dow:"qui",city:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"Windsor · Westminster",act:"Castelo de Windsor (manhã) + Buckingham + Big Ben + Westminster Abbey.",sleep:"President Hotel"},
+ {d:"14",m:"ago",dow:"sex",city:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"Harry Potter Studios",act:"🎬 Warner Bros HP Studios às 09:00 (comprado). Tarde: Tower of London.",move:"Trem p/ Watford",sleep:"President Hotel",book:"HP Studios 09:00"},
+ {d:"15",m:"ago",dow:"sáb",city:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"Bath · Stonehenge · West End",act:"Bate-volta Bath + Stonehenge. À noite: musical no West End.",move:"Trem",sleep:"President Hotel"},
+ {d:"16",m:"ago",dow:"dom",city:"Londres → Edimburgo",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"RK 596 · Royal Mile · Fringe",act:"Sair hotel 06:30. RK 596 09:35→10:55. Tarde: Royal Mile + Calton Hill + Fringe Festival.",move:"Ryanair RK 596",sleep:"Motel One Royal"},
+ {d:"17",m:"ago",dow:"seg",city:"Edimburgo",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"Castelo · canhão · whisky",act:"🏰 Castelo de Edimburgo 09:30 (comprado) + canhão da 1h + Grassmarket + Scotch Whisky Experience + St Giles.",sleep:"Motel One Royal",book:"Castelo 09:30"},
+ {d:"18",m:"ago",dow:"ter",city:"Highlands · Outlander",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"Outlander Explorer (dia todo)",act:"🚌 Outlander Explorer — cenários da série: Doune Castle, Midhope (Lallybroch), Blackness + Highlands.",move:"Tour bus",sleep:"Motel One Royal",book:"Outlander (comprado)"},
+ {d:"19",m:"ago",dow:"qua",city:"Edimburgo",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"Arthur's Seat · Holyrood",act:"Trilha Arthur's Seat (manhã) + Holyrood Palace + Dean Village + pubs no Grassmarket.",sleep:"Motel One Royal"},
+ {d:"20",m:"ago",dow:"qui",city:"Edimburgo → Dublin",flag:"🇮🇪",zone:"ie",sub:"FR 815 · Temple Bar",act:"Manhã livre em Edimburgo. FR 815 15:10→16:15. Aircoach até o hotel. Jantar no Temple Bar.",move:"Ryanair FR 815",sleep:"Holiday Inn"},
+ {d:"21",m:"ago",dow:"sex",city:"Dublin",flag:"🇮🇪",zone:"ie",sub:"Trinity · Guinness",act:"Trinity College + Book of Kells (manhã). Guinness Storehouse — Gravity Bar no pôr do sol.",sleep:"Holiday Inn"},
+ {d:"22",m:"ago",dow:"sáb",city:"Dublin → Doolin",flag:"🇮🇪",zone:"ie",sub:"Pega o carro · 270 km",act:"🚗 Retira carro no Dublin Airport 10h. Dirige até Doolin (3h30, 270 km).",move:"Carro · 270 km",sleep:"Ballinalacken Castle",book:"Pickup carro 10h"},
+ {d:"23",m:"ago",dow:"dom",city:"Doolin → Galway",flag:"🇮🇪",zone:"ie",sub:"Cliffs of Moher · 130 km",act:"🌅 Cliffs of Moher cedo + Burren + Poulnabrone (manhã). Tarde: dirige até Galway (1h30).",move:"Carro · 130 km",sleep:"The Western Hotel"},
+ {d:"24",m:"ago",dow:"seg",city:"Galway",flag:"🇮🇪",zone:"ie",sub:"Connemara · Kylemore",act:"🌄 Bate-volta Connemara / Kylemore Abbey + Sky Road (Clifden). Volta a Galway — música ao vivo nos pubs.",move:"Carro · 200 km",sleep:"The Western Hotel"},
+ {d:"25",m:"ago",dow:"ter",city:"Galway → Sligo",flag:"🇮🇪",zone:"ie",sub:"Wild Atlantic Way · 135 km",act:"🚗 Galway → Sligo (2h). Wild Atlantic Way. Tarde em Sligo (Yeats Country).",move:"Carro · 135 km",sleep:"Riverside Hotel"},
+ {d:"26",m:"ago",dow:"qua",city:"Sligo → Belfast",flag:"🇬🇧",zone:"nir",sub:"Titanic Museum · 210 km",act:"🚗 Sligo → Belfast (2h30). Tarde: Titanic Belfast Museum + Cathedral Quarter.",move:"Carro · 210 km",sleep:"Premier Inn Titanic Q."},
+ {d:"27",m:"ago",dow:"qui",city:"Belfast · Causeway",flag:"🇬🇧",zone:"nir",sub:"Giant's Causeway · 215 km",act:"🚗 Causeway Coast o dia todo: Dark Hedges + Carrick-a-Rede + Giant's Causeway + Dunluce Castle.",move:"Carro · 215 km",sleep:"Premier Inn Titanic Q."},
+ {d:"28",m:"ago",dow:"sex",city:"Belfast → Madrid",flag:"🇪🇸",zone:"es",sub:"Devolve carro · FR 7156",act:"Manhã em Belfast. 13h sai p/ Dublin Airport (2h). Devolve carro 15h. FR 7156 20:25→00:15 Madrid.",move:"Carro + FR 7156",sleep:"Hotel Europa"},
+ {d:"29",m:"ago",dow:"sáb",city:"Madrid",flag:"🇪🇸",zone:"es",sub:"Prado · Palácio Real",act:"Dia inteiro: Museu do Prado + Palácio Real + Gran Vía + Parque do Retiro + tapas no Mercado San Miguel.",sleep:"Hotel Europa"},
+ {d:"30",m:"ago",dow:"dom",city:"Madrid → Voo BR",flag:"✈️",zone:"es",sub:"El Rastro · Botín · CA897",act:"🌅 El Rastro (mercado de domingo) + almoço no Botín (mais antigo do mundo). CA897 23:15 → GRU.",move:"Air China CA897",sleep:"No avião",book:"Reserva Botín"}
+];
+
+const HOTELS=[
+ {city:"Madrid · chegada",name:"Hotel Europa",dates:"11 → 12 ago",nights:"1 noite",price:"R$ 774"},
+ {city:"Londres",name:"President Hotel",dates:"12 → 16 ago",nights:"4 noites",price:"R$ 3.997"},
+ {city:"Edimburgo",name:"Motel One Royal",dates:"16 → 20 ago",nights:"4 noites",price:"R$ 7.751"},
+ {city:"Dublin",name:"Holiday Inn",dates:"20 → 22 ago",nights:"2 noites",price:"R$ 2.843"},
+ {city:"Doolin",name:"Ballinalacken Castle",dates:"22 → 23 ago",nights:"1 noite",price:"R$ 1.826"},
+ {city:"Galway",name:"The Western Hotel",dates:"23 → 25 ago",nights:"2 noites",price:"R$ 2.910"},
+ {city:"Sligo",name:"Riverside Hotel",dates:"25 → 26 ago",nights:"1 noite",price:"R$ 1.146"},
+ {city:"Belfast",name:"Premier Inn Titanic Q.",dates:"26 → 28 ago",nights:"2 noites",price:"R$ 2.425"},
+ {city:"Madrid · volta",name:"Hotel Europa",dates:"28 → 30 ago",nights:"2 noites",price:"US$ 546"}
+];
+
+const FLIGHTS=[
+ {code:"CA898",from:"GRU → Madrid",time:"10/08 · 09:25 → 00:45(+1)",air:"Air China"},
+ {code:"FR 348",from:"Madrid → Londres STN",time:"12/08 · 06:30 → 07:55",air:"Ryanair"},
+ {code:"RK 596",from:"Londres STN → Edimburgo",time:"16/08 · 09:35 → 10:55",air:"Ryanair UK"},
+ {code:"FR 815",from:"Edimburgo → Dublin",time:"20/08 · 15:10 → 16:15",air:"Ryanair"},
+ {code:"FR 7156",from:"Dublin → Madrid",time:"28/08 · 20:25 → 00:15(+1)",air:"Ryanair"},
+ {code:"CA897",from:"Madrid → GRU",time:"30/08 · 23:15 → 05:00(+1)",air:"Air China"}
+];
+
+const TODOS=[
+ {g:"🔴 Urgente",items:[
+   {t:"Reservar aluguel de carro na Irlanda",n:"22–28/08 · Dublin Airport · cross-border p/ Belfast"},
+   {t:"Pré-agendar Cabify em Madrid",n:"04:00 do dia 12/08 → aeroporto Barajas"}
+ ]},
+ {g:"📄 Documentos",items:[
+   {t:"Tirar PID (Permissão Internacional)",n:"Detran SP · ~R$ 80 · obrigatória na Irlanda"},
+   {t:"ETA Reino Unido",n:"gov.uk · ~£10 · obrigatório p/ brasileiros"},
+   {t:"Verificar ETIAS (União Europeia)",n:"Conferir se já é exigido · ~€7"},
+   {t:"Contratar seguro viagem",n:"21 dias · cobertura mín. €30.000"},
+   {t:"Conferir validade do passaporte",n:"Mínimo 6 meses (até fev/2027)"}
+ ]},
+ {g:"💳 Dinheiro & conectividade",items:[
+   {t:"Avisar bancos sobre a viagem",n:"Evita bloqueio do cartão no exterior"},
+   {t:"Levar algum euro e libra em espécie",n:"Pubs pequenos e pedágios"},
+   {t:"Ativar eSIM Europa",n:"Funciona em ES, UK e IE"}
+ ]},
+ {g:"🎒 Reservas a fazer no destino",items:[
+   {t:"Reservar mesa no Botín (Madrid)",n:"30/08 · restaurante mais antigo do mundo"},
+   {t:"Ingressos Trinity College + Guinness",n:"Dublin · reservar horário matinal"},
+   {t:"Titanic Belfast + Carrick-a-Rede",n:"Reservar horário cedo · esgota no verão"},
+   {t:"Musical no West End",n:"Londres · 15/08 à noite"}
+ ]}
+];
+
+const MONEY=[
+ {cat:"Voos low-cost (4 Ryanair)",val:"R$ 4.966"},
+ {cat:"Hotéis (9 · 19 noites)",val:"R$ 26.720"},
+ {cat:"Atrações & tours",val:"R$ 2.806"},
+ {cat:"Pendente estimado",val:"R$ 4,9–6,7k"}
+];
+
+/* ---------- RENDER ---------- */
+const zoneFlag={es:"🇪🇸",uk:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",sco:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",ie:"🇮🇪",nir:"🇬🇧"};
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+
+/* dias */
+const daysEl=document.getElementById("days");
+DAYS.forEach((d,i)=>{
+  const el=document.createElement("div");
+  el.className="day "+d.zone;
+  el.innerHTML=`
+   <div class="day-head" onclick="this.parentElement.classList.toggle('open')">
+     <div class="day-date"><div class="day-d">${d.d}</div><div class="day-m">${d.m}·${d.dow}</div></div>
+     <div class="day-info"><div class="day-city">${d.flag} ${esc(d.city)}</div><div class="day-sub">${esc(d.sub)}</div></div>
+     <div class="chev">▸</div>
+   </div>
+   <div class="day-body"><div class="day-body-inner">
+     <p class="day-act">${esc(d.act)}</p>
+     <div class="day-meta">
+       ${d.move?`<span class="tag move">✈ ${esc(d.move)}</span>`:""}
+       <span class="tag sleep">🛏 ${esc(d.sleep)}</span>
+       ${d.book?`<span class="tag book">★ ${esc(d.book)}</span>`:""}
+     </div>
+   </div></div>`;
+  daysEl.appendChild(el);
+});
+/* abre o primeiro dia */
+if(daysEl.firstChild) daysEl.firstChild.classList.add("open");
+
+/* quickmap */
+const qm=document.getElementById("quickmap");
+["🇪🇸 Madrid","🏴󠁧󠁢󠁥󠁮󠁧󠁿 Londres","🏴󠁧󠁢󠁳󠁣󠁴󠁿 Edimburgo","🇮🇪 Dublin","🇮🇪 Doolin","🇮🇪 Galway","🇮🇪 Sligo","🇬🇧 Belfast","🇪🇸 Madrid"].forEach(c=>{
+  const s=document.createElement("span");s.className="qp";s.textContent=c;qm.appendChild(s);
+});
+
+/* hotéis */
+const hEl=document.getElementById("hotels");
+HOTELS.forEach(h=>{
+  const el=document.createElement("div");el.className="stamp-card";
+  el.innerHTML=`<div class="ok-stamp">RESERVADO</div>
+    <div class="sc-city">${esc(h.city)}</div>
+    <div class="sc-name">${esc(h.name)}</div>
+    <div class="sc-dates">${esc(h.dates)}</div>
+    <div class="sc-foot"><span class="sc-nights">${esc(h.nights)}</span><span class="sc-price">${esc(h.price)}</span></div>`;
+  hEl.appendChild(el);
+});
+
+/* voos */
+const fEl=document.getElementById("flights");
+FLIGHTS.forEach(f=>{
+  const el=document.createElement("div");el.className="flight";
+  el.innerHTML=`<span class="fl-code">${esc(f.code)}</span>
+    <div class="fl-route"><div class="fl-cities">${esc(f.from)}</div><div class="fl-time">${esc(f.time)} · ${esc(f.air)}</div></div>`;
+  fEl.appendChild(el);
+});
+
+/* checklist com localStorage */
+const tEl=document.getElementById("todos");
+let saved={};
+try{saved=JSON.parse(localStorage.getItem("viagem_todos")||"{}");}catch(e){saved={};}
+TODOS.forEach((grp,gi)=>{
+  const g=document.createElement("div");g.className="todo-group";
+  g.innerHTML=`<div class="todo-h">${esc(grp.g)}</div>`;
+  grp.items.forEach((it,ii)=>{
+    const key="t"+gi+"_"+ii;
+    const done=saved[key]?"done":"";
+    const row=document.createElement("div");row.className="todo "+done;
+    row.innerHTML=`<div class="box">${saved[key]?"✓":""}</div>
+      <div class="todo-body"><div class="todo-txt">${esc(it.t)}</div>${it.n?`<div class="todo-note">${esc(it.n)}</div>`:""}</div>`;
+    row.addEventListener("click",()=>{
+      row.classList.toggle("done");
+      const on=row.classList.contains("done");
+      row.querySelector(".box").textContent=on?"✓":"";
+      saved[key]=on;
+      try{localStorage.setItem("viagem_todos",JSON.stringify(saved));}catch(e){}
+    });
+    g.appendChild(row);
+  });
+  tEl.appendChild(g);
+});
+
+/* ---- itens personalizados (adicionar/remover) ---- */
+const mineEl=document.getElementById("mine");
+let mine=[];
+try{mine=JSON.parse(localStorage.getItem("viagem_mine")||"[]");}catch(e){mine=[];}
+function saveMine(){try{localStorage.setItem("viagem_mine",JSON.stringify(mine));}catch(e){}}
+function renderMine(){
+  mineEl.innerHTML="";
+  if(mine.length===0){
+    mineEl.innerHTML='<div class="my-empty">Nenhum item ainda. Adicione o que quiser lembrar.</div>';
+    return;
+  }
+  mine.forEach((it,i)=>{
+    const row=document.createElement("div");row.className="todo "+(it.done?"done":"");
+    row.innerHTML=`<div class="box">${it.done?"✓":""}</div>
+      <div class="todo-body"><div class="todo-txt"></div></div>
+      <button class="todo-del" title="Remover">×</button>`;
+    row.querySelector(".todo-txt").textContent=it.t;   /* textContent = seguro contra HTML */
+    /* marcar/desmarcar: um único listener na linha */
+    row.addEventListener("click",(e)=>{
+      if(e.target.classList.contains("todo-del"))return;
+      it.done=!it.done;saveMine();renderMine();
+    });
+    /* remover */
+    row.querySelector(".todo-del").addEventListener("click",(e)=>{
+      e.stopPropagation();
+      mine.splice(i,1);saveMine();renderMine();
+    });
+    mineEl.appendChild(row);
+  });
+}
+function addMine(){
+  const inp=document.getElementById("addInput");
+  const v=inp.value.trim();
+  if(!v)return;
+  mine.push({t:v,done:false});
+  saveMine();renderMine();
+  inp.value="";inp.focus();
+}
+renderMine();
+
+/* money */
+const mEl=document.getElementById("money");
+MONEY.forEach(m=>{
+  const el=document.createElement("div");el.className="money-row";
+  el.innerHTML=`<span class="m-cat">${esc(m.cat)}</span><span class="m-val">${esc(m.val)}</span>`;
+  mEl.appendChild(el);
+});
+
+/* countdown */
+function tick(){
+  const target=new Date("2026-08-10T09:25:00-03:00");
+  const now=new Date();
+  let diff=Math.max(0,target-now);
+  const dd=Math.floor(diff/86400000);
+  const hh=Math.floor(diff%86400000/3600000);
+  const mm=Math.floor(diff%3600000/60000);
+  const ss=Math.floor(diff%60000/1000);
+  const cd=document.getElementById("countdown");
+  const boxes=[[dd,"dias"],[hh,"horas"],[mm,"min"],[ss,"seg"]];
+  cd.innerHTML=boxes.map(b=>`<div class="cd-box"><div class="cd-num">${String(b[0]).padStart(2,"0")}</div><div class="cd-lbl">${b[1]}</div></div>`).join("");
+}
+tick();setInterval(tick,1000);
+
+/* nav */
+document.querySelectorAll(".nav-btn").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.getElementById(b.dataset.p).classList.add("active");
+    window.scrollTo({top:0,behavior:"smooth"});
+  });
+});
+</script>
+</body>
+</html>
