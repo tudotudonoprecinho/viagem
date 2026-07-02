@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1c3d5a">
 <title>Diário de Bordo · Europa 2026</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
   :root{
     --ink:#1c2b36;        /* tinta escura */
@@ -95,19 +99,41 @@
     width:100%;max-width:600px;
     background:var(--ink);
     display:flex;justify-content:space-around;
-    padding:8px 4px calc(8px + env(safe-area-inset-bottom));
+    padding:8px 2px calc(8px + env(safe-area-inset-bottom));
     z-index:50;border-top:2px solid var(--gold);
   }
   .nav-btn{
     background:none;border:none;color:#9fb0bd;
     display:flex;flex-direction:column;align-items:center;gap:3px;
-    font-family:"Courier New",monospace;font-size:9.5px;letter-spacing:.5px;
-    cursor:pointer;padding:4px 6px;border-radius:8px;flex:1;
+    font-family:"Courier New",monospace;font-size:9px;letter-spacing:.3px;
+    cursor:pointer;padding:4px 3px;border-radius:8px;flex:1;
     transition:color .2s;
   }
-  .nav-btn .ic{font-size:19px;line-height:1;}
+  .nav-btn .ic{font-size:18px;line-height:1;}
   .nav-btn.active{color:var(--gold);}
   .nav-btn.active .ic{transform:translateY(-1px);}
+
+  /* ============ MAPAS (Leaflet) ============ */
+  .map-box{
+    height:230px;border-radius:12px;overflow:hidden;
+    border:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.08);
+    margin-bottom:12px;background:#dfe6ea;
+  }
+  .leaflet-container{font-family:"Courier New",monospace;background:#dfe6ea;}
+  .map-legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+    font-family:"Courier New",monospace;font-size:10px;color:var(--muted);margin-bottom:14px;}
+  .map-legend span{display:inline-flex;align-items:center;gap:5px;}
+  .lg-line{width:18px;height:0;border-top:3px solid var(--sea);}
+  .lg-line.drive{border-top-style:solid;border-color:var(--moss);}
+  .lg-line.fly{border-top-style:dashed;border-color:var(--sea);}
+  .pin{
+    background:var(--stamp);color:#fff;border:2px solid #fff;border-radius:50%;
+    width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+    font-family:"Courier New",monospace;font-weight:bold;font-size:12px;
+    box-shadow:0 1px 4px rgba(0,0,0,.4);
+  }
+  .leaflet-popup-content{font-family:"Courier New",monospace;font-size:12px;margin:8px 12px;}
+  .leaflet-popup-content b{color:var(--sea);}
 
   /* ============ DAY CARDS ============ */
   .day{
@@ -150,6 +176,67 @@
   .tag.sleep{background:#eef2ea;color:var(--moss);}
   .tag.book{background:#f6e9d8;color:#9a6a00;border-color:#e6cfa0;}
 
+  /* ============ CALENDÁRIO ============ */
+  .cal-month{text-align:center;font-family:"Courier New",monospace;font-size:12px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--sea);margin-bottom:12px;}
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:16px;}
+  .cal-hd{font-family:"Courier New",monospace;font-size:9px;text-align:center;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.5px;padding-bottom:2px;}
+  .cal-cell{
+    border-radius:9px;min-height:56px;padding:5px 4px;display:flex;flex-direction:column;
+    border:1px solid transparent;min-width:0;overflow:hidden;
+  }
+  .cal-cell.empty{visibility:hidden;}
+  .cal-cell.off{background:var(--paper);border:1px dashed var(--line);}
+  .cal-cell.off .cc-num{color:var(--muted);opacity:.6;}
+  .cal-cell.trip{cursor:pointer;border:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.05);
+    transition:transform .12s;}
+  .cal-cell.trip:active{transform:scale(.95);}
+  .cal-cell.es{background:#f6e9d8;border-color:#e6cfa0;}
+  .cal-cell.uk{background:#e7eef3;border-color:#c5d6e2;}
+  .cal-cell.sco{background:#dfe8f0;border-color:#bcd0e0;}
+  .cal-cell.ie{background:#eef2ea;border-color:#cfe0cc;}
+  .cal-cell.nir{background:#f6e2e2;border-color:#e6c2c2;}
+  .cc-top{display:flex;justify-content:space-between;align-items:center;}
+  .cc-num{font-family:"Courier New",monospace;font-size:13px;font-weight:bold;color:var(--ink);line-height:1;}
+  .cc-flag{font-size:12px;}
+  .cc-lbl{font-size:8.5px;line-height:1.15;color:var(--ink);margin-top:auto;font-family:"Courier New",monospace;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;}
+  .cal-hint{text-align:center;font-family:"Courier New",monospace;font-size:10.5px;color:var(--muted);
+    margin-bottom:10px;}
+
+  /* ============ MODAL DETALHE DIA ============ */
+  .modal-back{
+    position:fixed;inset:0;background:rgba(28,43,54,.55);z-index:100;
+    display:none;align-items:flex-end;justify-content:center;
+    backdrop-filter:blur(2px);
+  }
+  .modal-back.open{display:flex;}
+  .modal{
+    background:var(--paper);width:100%;max-width:600px;
+    border-radius:18px 18px 0 0;max-height:92vh;overflow-y:auto;
+    border-top:3px solid var(--gold);animation:slideup .3s ease;
+    padding-bottom:20px;
+  }
+  @keyframes slideup{from{transform:translateY(30px);opacity:.5;}to{transform:none;opacity:1;}}
+  .modal-head{
+    display:flex;align-items:center;gap:12px;padding:16px 18px 12px;position:sticky;top:0;
+    background:linear-gradient(160deg,var(--sea),var(--sea2));color:var(--paper);
+    border-radius:15px 15px 0 0;
+  }
+  .modal-date{text-align:center;min-width:46px;}
+  .modal-d{font-size:22px;font-weight:bold;font-family:"Courier New",monospace;line-height:1;}
+  .modal-m{font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:.8;margin-top:2px;}
+  .modal-city{flex:1;font-size:17px;font-weight:bold;font-style:italic;}
+  .modal-close{
+    background:rgba(255,255,255,.15);border:none;color:#fff;font-size:20px;line-height:1;
+    width:32px;height:32px;border-radius:50%;cursor:pointer;flex-shrink:0;font-family:Georgia,serif;
+  }
+  .modal-body{padding:14px 18px 0;}
+  .mini-map{height:190px;border-radius:12px;overflow:hidden;border:1px solid var(--line);
+    margin-bottom:14px;background:#dfe6ea;}
+  .modal-act{font-size:14px;line-height:1.65;color:var(--ink);margin:0 0 4px;}
+
   /* ============ HOTEL / STAMP CARDS ============ */
   .stamp-card{
     background:var(--paper);border:1px solid var(--line);border-radius:10px;
@@ -167,7 +254,8 @@
   .sc-dates{font-size:12px;color:var(--muted);font-family:"Courier New",monospace;}
   .sc-foot{display:flex;justify-content:space-between;align-items:center;margin-top:9px;
     border-top:1px dashed var(--line);padding-top:9px;}
-  .sc-price{font-size:14px;font-weight:bold;color:var(--sea);}
+  .sc-price{font-size:14px;font-weight:bold;color:var(--sea);font-family:"Courier New",monospace;}
+  .sc-price.locked{color:var(--muted);letter-spacing:1px;}
   .sc-nights{font-size:11px;color:var(--muted);}
 
   /* ============ CHECKLIST ============ */
@@ -248,6 +336,26 @@
   .money-row .m-cat{color:var(--ink);}
   .money-row .m-val{font-weight:bold;color:var(--sea);font-family:"Courier New",monospace;}
 
+  /* ============ TELA DE SENHA (FINANCEIRO) ============ */
+  .lock{text-align:center;padding:26px 18px;}
+  .lock-ic{font-size:44px;margin-bottom:8px;}
+  .lock-t{font-size:18px;font-style:italic;color:var(--sea);margin-bottom:6px;}
+  .lock-d{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:18px;font-family:"Courier New",monospace;}
+  .lock-form{display:flex;gap:8px;max-width:320px;margin:0 auto;}
+  .lock-form input{
+    flex:1;font-family:"Courier New",monospace;font-size:15px;padding:12px 14px;text-align:center;
+    border:1px solid var(--line);border-radius:9px;background:var(--paper);color:var(--ink);
+    letter-spacing:2px;min-width:0;
+  }
+  .lock-form input:focus{outline:none;border-color:var(--sea);}
+  .lock-btn{
+    background:var(--sea);color:var(--paper);border:none;border-radius:9px;
+    font-family:"Courier New",monospace;font-size:13px;font-weight:bold;padding:0 16px;
+    cursor:pointer;flex-shrink:0;
+  }
+  .lock-btn:active{background:var(--sea2);}
+  .lock-err{color:var(--stamp);font-size:12px;font-family:"Courier New",monospace;margin-top:14px;min-height:16px;}
+
   /* city pills quick jump */
   .quickmap{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;-webkit-overflow-scrolling:touch;}
   .qp{white-space:nowrap;font-family:"Courier New",monospace;font-size:10.5px;padding:6px 11px;border-radius:20px;
@@ -272,8 +380,27 @@
 <section class="page active" id="roteiro">
   <div class="section-eyebrow">Itinerário</div>
   <h2 class="section-title">21 dias, 5 destinos</h2>
+  <div class="map-box" id="routeMap"></div>
+  <div class="map-legend">
+    <span><span class="lg-line fly"></span> Voo</span>
+    <span><span class="lg-line drive"></span> Carro</span>
+    <span>📍 Toque nos pinos</span>
+  </div>
   <div class="quickmap" id="quickmap"></div>
   <div id="days"></div>
+</section>
+
+<!-- AGENDA / CALENDÁRIO -->
+<section class="page" id="agenda">
+  <div class="section-eyebrow">Dia a dia</div>
+  <h2 class="section-title">Calendário</h2>
+  <div class="cal-month">Agosto · 2026</div>
+  <p class="cal-hint">Toque num dia colorido para ver os detalhes + mapa</p>
+  <div class="cal" id="calGrid"></div>
+  <div class="map-legend">
+    <span>🇪🇸 Espanha</span><span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra</span><span>🏴󠁧󠁢󠁳󠁣󠁴󠁿 Escócia</span>
+    <span>🇮🇪 Irlanda</span><span>🇬🇧 Irl. do Norte</span>
+  </div>
 </section>
 
 <!-- HOTÉIS -->
@@ -321,16 +448,7 @@
 <!-- INFO -->
 <section class="page" id="info">
   <div class="section-eyebrow">Bom saber</div>
-  <h2 class="section-title">Lembretes & $</h2>
-
-  <div class="money-hero">
-    <div class="lbl">Total já reservado</div>
-    <div class="val">R$ 34,5k</div>
-    <div class="sub">voos + 9 hotéis + 3 atrações (sem Air China)</div>
-  </div>
-  <div id="money"></div>
-
-  <div class="divider-stamp">✦ ✦ ✦</div>
+  <h2 class="section-title">Lembretes</h2>
 
   <div class="rem">
     <div class="rem-t">💳 Câmbio & cartão</div>
@@ -360,52 +478,113 @@
   <p class="fine">Diário de Bordo · Europa 2026<br>feito para Gabriel & Dani ✦ boa viagem!</p>
 </section>
 
+<!-- FINANCEIRO (protegido por senha) -->
+<section class="page" id="fin">
+  <div class="section-eyebrow">Confidencial</div>
+  <h2 class="section-title">Financeiro</h2>
+  <div id="finLock">
+    <div class="lock">
+      <div class="lock-ic">🔒</div>
+      <div class="lock-t">Área protegida</div>
+      <div class="lock-d">Os valores estão criptografados.<br>Digite a senha para ver.</div>
+      <div class="lock-form">
+        <input id="finPass" type="password" placeholder="senha" autocomplete="off"
+               onkeydown="if(event.key==='Enter')tryUnlock()">
+        <button class="lock-btn" onclick="tryUnlock()">Abrir</button>
+      </div>
+      <div class="lock-err" id="finErr"></div>
+    </div>
+  </div>
+  <div id="finContent" style="display:none;">
+    <div class="money-hero">
+      <div class="lbl">Total já reservado</div>
+      <div class="val" id="finTotal">—</div>
+      <div class="sub" id="finSub"></div>
+    </div>
+    <div id="money"></div>
+    <p class="fine" id="finLockAgain" style="cursor:pointer;">🔒 Tocar aqui para bloquear de novo</p>
+  </div>
+</section>
+
+</div>
+
+<!-- MODAL DETALHE DO DIA -->
+<div class="modal-back" id="modalBack">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <div class="modal-date"><div class="modal-d" id="mD"></div><div class="modal-m" id="mM"></div></div>
+      <div class="modal-city" id="mCity"></div>
+      <button class="modal-close" onclick="closeDay()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="mini-map" id="miniMap"></div>
+      <p class="modal-act" id="mAct"></p>
+      <div class="day-meta" id="mMeta"></div>
+    </div>
+  </div>
 </div>
 
 <nav>
   <button class="nav-btn active" data-p="roteiro"><span class="ic">🧭</span>Roteiro</button>
+  <button class="nav-btn" data-p="agenda"><span class="ic">📅</span>Agenda</button>
   <button class="nav-btn" data-p="hoteis"><span class="ic">🛏️</span>Hotéis</button>
   <button class="nav-btn" data-p="voos"><span class="ic">✈️</span>Voos</button>
-  <button class="nav-btn" data-p="checklist"><span class="ic">✓</span>Checklist</button>
+  <button class="nav-btn" data-p="checklist"><span class="ic">✓</span>Lista</button>
   <button class="nav-btn" data-p="info"><span class="ic">✦</span>Info</button>
+  <button class="nav-btn" data-p="fin"><span class="ic">🔒</span>Custos</button>
 </nav>
 
 <script>
 /* ---------- DADOS ---------- */
 const DAYS=[
- {d:"10",m:"ago",dow:"seg",city:"Voo GRU → Madrid",flag:"✈️",zone:"es",sub:"Air China CA898",act:"Embarque no GRU 09:25 → chega Madrid 00:45 (+1). 10h20 de voo.",move:"Air China CA898",sleep:"No avião"},
- {d:"11",m:"ago",dow:"ter",city:"Madrid",flag:"🇪🇸",zone:"es",sub:"Chegada · descanso · tapas",act:"Chegada de madrugada. Descanso. À tarde: Plaza Mayor + La Latina (tapas). Dormir cedo — jantar até 21h.",sleep:"Hotel Europa"},
- {d:"12",m:"ago",dow:"qua",city:"Madrid → Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"04:00 Cabify · FR 348",act:"04:00 Cabify → Barajas. FR 348 06:30→07:55. Stansted Express até a cidade. Hotel ~10h. Tarde em Covent Garden.",move:"Ryanair FR 348",sleep:"President Hotel",book:"Cabify 04:00"},
- {d:"13",m:"ago",dow:"qui",city:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"Windsor · Westminster",act:"Castelo de Windsor (manhã) + Buckingham + Big Ben + Westminster Abbey.",sleep:"President Hotel"},
- {d:"14",m:"ago",dow:"sex",city:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"Harry Potter Studios",act:"🎬 Warner Bros HP Studios às 09:00 (comprado). Tarde: Tower of London.",move:"Trem p/ Watford",sleep:"President Hotel",book:"HP Studios 09:00"},
- {d:"15",m:"ago",dow:"sáb",city:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",sub:"Bath · Stonehenge · West End",act:"Bate-volta Bath + Stonehenge. À noite: musical no West End.",move:"Trem",sleep:"President Hotel"},
- {d:"16",m:"ago",dow:"dom",city:"Londres → Edimburgo",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"RK 596 · Royal Mile · Fringe",act:"Sair hotel 06:30. RK 596 09:35→10:55. Tarde: Royal Mile + Calton Hill + Fringe Festival.",move:"Ryanair RK 596",sleep:"Motel One Royal"},
- {d:"17",m:"ago",dow:"seg",city:"Edimburgo",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"Castelo · canhão · whisky",act:"🏰 Castelo de Edimburgo 09:30 (comprado) + canhão da 1h + Grassmarket + Scotch Whisky Experience + St Giles.",sleep:"Motel One Royal",book:"Castelo 09:30"},
- {d:"18",m:"ago",dow:"ter",city:"Highlands · Outlander",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"Outlander Explorer (dia todo)",act:"🚌 Outlander Explorer — cenários da série: Doune Castle, Midhope (Lallybroch), Blackness + Highlands.",move:"Tour bus",sleep:"Motel One Royal",book:"Outlander (comprado)"},
- {d:"19",m:"ago",dow:"qua",city:"Edimburgo",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",sub:"Arthur's Seat · Holyrood",act:"Trilha Arthur's Seat (manhã) + Holyrood Palace + Dean Village + pubs no Grassmarket.",sleep:"Motel One Royal"},
- {d:"20",m:"ago",dow:"qui",city:"Edimburgo → Dublin",flag:"🇮🇪",zone:"ie",sub:"FR 815 · Temple Bar",act:"Manhã livre em Edimburgo. FR 815 15:10→16:15. Aircoach até o hotel. Jantar no Temple Bar.",move:"Ryanair FR 815",sleep:"Holiday Inn"},
- {d:"21",m:"ago",dow:"sex",city:"Dublin",flag:"🇮🇪",zone:"ie",sub:"Trinity · Guinness",act:"Trinity College + Book of Kells (manhã). Guinness Storehouse — Gravity Bar no pôr do sol.",sleep:"Holiday Inn"},
- {d:"22",m:"ago",dow:"sáb",city:"Dublin → Doolin",flag:"🇮🇪",zone:"ie",sub:"Pega o carro · 270 km",act:"🚗 Retira carro no Dublin Airport 10h. Dirige até Doolin (3h30, 270 km).",move:"Carro · 270 km",sleep:"Ballinalacken Castle",book:"Pickup carro 10h"},
- {d:"23",m:"ago",dow:"dom",city:"Doolin → Galway",flag:"🇮🇪",zone:"ie",sub:"Cliffs of Moher · 130 km",act:"🌅 Cliffs of Moher cedo + Burren + Poulnabrone (manhã). Tarde: dirige até Galway (1h30).",move:"Carro · 130 km",sleep:"The Western Hotel"},
- {d:"24",m:"ago",dow:"seg",city:"Galway",flag:"🇮🇪",zone:"ie",sub:"Connemara · Kylemore",act:"🌄 Bate-volta Connemara / Kylemore Abbey + Sky Road (Clifden). Volta a Galway — música ao vivo nos pubs.",move:"Carro · 200 km",sleep:"The Western Hotel"},
- {d:"25",m:"ago",dow:"ter",city:"Galway → Sligo",flag:"🇮🇪",zone:"ie",sub:"Wild Atlantic Way · 135 km",act:"🚗 Galway → Sligo (2h). Wild Atlantic Way. Tarde em Sligo (Yeats Country).",move:"Carro · 135 km",sleep:"Riverside Hotel"},
- {d:"26",m:"ago",dow:"qua",city:"Sligo → Belfast",flag:"🇬🇧",zone:"nir",sub:"Titanic Museum · 210 km",act:"🚗 Sligo → Belfast (2h30). Tarde: Titanic Belfast Museum + Cathedral Quarter.",move:"Carro · 210 km",sleep:"Premier Inn Titanic Q."},
- {d:"27",m:"ago",dow:"qui",city:"Belfast · Causeway",flag:"🇬🇧",zone:"nir",sub:"Giant's Causeway · 215 km",act:"🚗 Causeway Coast o dia todo: Dark Hedges + Carrick-a-Rede + Giant's Causeway + Dunluce Castle.",move:"Carro · 215 km",sleep:"Premier Inn Titanic Q."},
- {d:"28",m:"ago",dow:"sex",city:"Belfast → Madrid",flag:"🇪🇸",zone:"es",sub:"Devolve carro · FR 7156",act:"Manhã em Belfast. 13h sai p/ Dublin Airport (2h). Devolve carro 15h. FR 7156 20:25→00:15 Madrid.",move:"Carro + FR 7156",sleep:"Hotel Europa"},
- {d:"29",m:"ago",dow:"sáb",city:"Madrid",flag:"🇪🇸",zone:"es",sub:"Prado · Palácio Real",act:"Dia inteiro: Museu do Prado + Palácio Real + Gran Vía + Parque do Retiro + tapas no Mercado San Miguel.",sleep:"Hotel Europa"},
- {d:"30",m:"ago",dow:"dom",city:"Madrid → Voo BR",flag:"✈️",zone:"es",sub:"El Rastro · Botín · CA897",act:"🌅 El Rastro (mercado de domingo) + almoço no Botín (mais antigo do mundo). CA897 23:15 → GRU.",move:"Air China CA897",sleep:"No avião",book:"Reserva Botín"}
+ {d:"10",m:"ago",dow:"seg",city:"Voo GRU → Madrid",short:"GRU→MAD",flag:"✈️",zone:"es",lat:40.4168,lng:-3.7038,sub:"Air China CA898",act:"Embarque no GRU 09:25 → chega Madrid 00:45 (+1). 10h20 de voo.",move:"Air China CA898",sleep:"No avião"},
+ {d:"11",m:"ago",dow:"ter",city:"Madrid",short:"Madrid",flag:"🇪🇸",zone:"es",lat:40.4168,lng:-3.7038,sub:"Chegada · descanso · tapas",act:"Chegada de madrugada. Descanso. À tarde: Plaza Mayor + La Latina (tapas). Dormir cedo — jantar até 21h.",sleep:"Hotel Europa"},
+ {d:"12",m:"ago",dow:"qua",city:"Madrid → Londres",short:"→Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",lat:51.5074,lng:-0.1278,sub:"04:00 Cabify · FR 348",act:"04:00 Cabify → Barajas. FR 348 06:30→07:55. Stansted Express até a cidade. Hotel ~10h. Tarde em Covent Garden.",move:"Ryanair FR 348",sleep:"President Hotel",book:"Cabify 04:00"},
+ {d:"13",m:"ago",dow:"qui",city:"Londres",short:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",lat:51.5074,lng:-0.1278,sub:"Windsor · Westminster",act:"Castelo de Windsor (manhã) + Buckingham + Big Ben + Westminster Abbey.",sleep:"President Hotel"},
+ {d:"14",m:"ago",dow:"sex",city:"Londres",short:"Londres",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",lat:51.5074,lng:-0.1278,sub:"Harry Potter Studios",act:"🎬 Warner Bros HP Studios às 09:00 (comprado). Tarde: Tower of London.",move:"Trem p/ Watford",sleep:"President Hotel",book:"HP Studios 09:00"},
+ {d:"15",m:"ago",dow:"sáb",city:"Londres",short:"Bath",flag:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",zone:"uk",lat:51.1789,lng:-1.8262,sub:"Bath · Stonehenge · West End",act:"Bate-volta Bath + Stonehenge. À noite: musical no West End.",move:"Trem",sleep:"President Hotel"},
+ {d:"16",m:"ago",dow:"dom",city:"Londres → Edimburgo",short:"→Edimb.",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",lat:55.9533,lng:-3.1883,sub:"RK 596 · Royal Mile · Fringe",act:"Sair hotel 06:30. RK 596 09:35→10:55. Tarde: Royal Mile + Calton Hill + Fringe Festival.",move:"Ryanair RK 596",sleep:"Motel One Royal"},
+ {d:"17",m:"ago",dow:"seg",city:"Edimburgo",short:"Edimb.",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",lat:55.9486,lng:-3.1999,sub:"Castelo · canhão · whisky",act:"🏰 Castelo de Edimburgo 09:30 (comprado) + canhão da 1h + Grassmarket + Scotch Whisky Experience + St Giles.",sleep:"Motel One Royal",book:"Castelo 09:30"},
+ {d:"18",m:"ago",dow:"ter",city:"Highlands · Outlander",short:"Highl.",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",lat:56.1857,lng:-4.0507,sub:"Outlander Explorer (dia todo)",act:"🚌 Outlander Explorer — cenários da série: Doune Castle, Midhope (Lallybroch), Blackness + Highlands.",move:"Tour bus",sleep:"Motel One Royal",book:"Outlander (comprado)"},
+ {d:"19",m:"ago",dow:"qua",city:"Edimburgo",short:"Edimb.",flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",zone:"sco",lat:55.9533,lng:-3.1883,sub:"Arthur's Seat · Holyrood",act:"Trilha Arthur's Seat (manhã) + Holyrood Palace + Dean Village + pubs no Grassmarket.",sleep:"Motel One Royal"},
+ {d:"20",m:"ago",dow:"qui",city:"Edimburgo → Dublin",short:"→Dublin",flag:"🇮🇪",zone:"ie",lat:53.3498,lng:-6.2603,sub:"FR 815 · Temple Bar",act:"Manhã livre em Edimburgo. FR 815 15:10→16:15. Aircoach até o hotel. Jantar no Temple Bar.",move:"Ryanair FR 815",sleep:"Holiday Inn"},
+ {d:"21",m:"ago",dow:"sex",city:"Dublin",short:"Dublin",flag:"🇮🇪",zone:"ie",lat:53.3498,lng:-6.2603,sub:"Trinity · Guinness",act:"Trinity College + Book of Kells (manhã). Guinness Storehouse — Gravity Bar no pôr do sol.",sleep:"Holiday Inn"},
+ {d:"22",m:"ago",dow:"sáb",city:"Dublin → Doolin",short:"→Doolin",flag:"🇮🇪",zone:"ie",lat:53.0142,lng:-9.3785,sub:"Pega o carro · 270 km",act:"🚗 Retira carro no Dublin Airport 10h. Dirige até Doolin (3h30, 270 km).",move:"Carro · 270 km",sleep:"Ballinalacken Castle",book:"Pickup carro 10h"},
+ {d:"23",m:"ago",dow:"dom",city:"Doolin → Galway",short:"Cliffs",flag:"🇮🇪",zone:"ie",lat:52.9719,lng:-9.4265,sub:"Cliffs of Moher · 130 km",act:"🌅 Cliffs of Moher cedo + Burren + Poulnabrone (manhã). Tarde: dirige até Galway (1h30).",move:"Carro · 130 km",sleep:"The Western Hotel"},
+ {d:"24",m:"ago",dow:"seg",city:"Galway",short:"Connem.",flag:"🇮🇪",zone:"ie",lat:53.5606,lng:-9.8881,sub:"Connemara · Kylemore",act:"🌄 Bate-volta Connemara / Kylemore Abbey + Sky Road (Clifden). Volta a Galway — música ao vivo nos pubs.",move:"Carro · 200 km",sleep:"The Western Hotel"},
+ {d:"25",m:"ago",dow:"ter",city:"Galway → Sligo",short:"→Sligo",flag:"🇮🇪",zone:"ie",lat:54.2766,lng:-8.4761,sub:"Wild Atlantic Way · 135 km",act:"🚗 Galway → Sligo (2h). Wild Atlantic Way. Tarde em Sligo (Yeats Country).",move:"Carro · 135 km",sleep:"Riverside Hotel"},
+ {d:"26",m:"ago",dow:"qua",city:"Sligo → Belfast",short:"→Belfast",flag:"🇬🇧",zone:"nir",lat:54.5973,lng:-5.9301,sub:"Titanic Museum · 210 km",act:"🚗 Sligo → Belfast (2h30). Tarde: Titanic Belfast Museum + Cathedral Quarter.",move:"Carro · 210 km",sleep:"Premier Inn Titanic Q."},
+ {d:"27",m:"ago",dow:"qui",city:"Belfast · Causeway",short:"Causeway",flag:"🇬🇧",zone:"nir",lat:55.2408,lng:-6.5116,sub:"Giant's Causeway · 215 km",act:"🚗 Causeway Coast o dia todo: Dark Hedges + Carrick-a-Rede + Giant's Causeway + Dunluce Castle.",move:"Carro · 215 km",sleep:"Premier Inn Titanic Q."},
+ {d:"28",m:"ago",dow:"sex",city:"Belfast → Madrid",short:"→Madrid",flag:"🇪🇸",zone:"es",lat:40.4168,lng:-3.7038,sub:"Devolve carro · FR 7156",act:"Manhã em Belfast. 13h sai p/ Dublin Airport (2h). Devolve carro 15h. FR 7156 20:25→00:15 Madrid.",move:"Carro + FR 7156",sleep:"Hotel Europa"},
+ {d:"29",m:"ago",dow:"sáb",city:"Madrid",short:"Madrid",flag:"🇪🇸",zone:"es",lat:40.4168,lng:-3.7038,sub:"Prado · Palácio Real",act:"Dia inteiro: Museu do Prado + Palácio Real + Gran Vía + Parque do Retiro + tapas no Mercado San Miguel.",sleep:"Hotel Europa"},
+ {d:"30",m:"ago",dow:"dom",city:"Madrid → Voo BR",short:"→ Voo",flag:"✈️",zone:"es",lat:40.4168,lng:-3.7038,sub:"El Rastro · Botín · CA897",act:"🌅 El Rastro (mercado de domingo) + almoço no Botín (mais antigo do mundo). CA897 23:15 → GRU.",move:"Air China CA897",sleep:"No avião",book:"Reserva Botín"}
 ];
 
+/* paradas principais para o mapa geral (ordem da viagem) */
+const STOPS=[
+ {n:1,name:"Madrid",lat:40.4168,lng:-3.7038},
+ {n:2,name:"Londres",lat:51.5074,lng:-0.1278},
+ {n:3,name:"Edimburgo",lat:55.9533,lng:-3.1883},
+ {n:4,name:"Dublin",lat:53.3498,lng:-6.2603},
+ {n:5,name:"Doolin",lat:53.0142,lng:-9.3785},
+ {n:6,name:"Galway",lat:53.2707,lng:-9.0568},
+ {n:7,name:"Sligo",lat:54.2766,lng:-8.4761},
+ {n:8,name:"Belfast",lat:54.5973,lng:-5.9301}
+];
+/* trechos de avião (tracejado) e de carro (contínuo) */
+const FLY=[["Madrid","Londres"],["Londres","Edimburgo"],["Edimburgo","Dublin"],["Belfast","Madrid"]];
+const DRIVE=[["Dublin","Doolin"],["Doolin","Galway"],["Galway","Sligo"],["Sligo","Belfast"]];
+
 const HOTELS=[
- {city:"Madrid · chegada",name:"Hotel Europa",dates:"11 → 12 ago",nights:"1 noite",price:"R$ 774"},
- {city:"Londres",name:"President Hotel",dates:"12 → 16 ago",nights:"4 noites",price:"R$ 3.997"},
- {city:"Edimburgo",name:"Motel One Royal",dates:"16 → 20 ago",nights:"4 noites",price:"R$ 7.751"},
- {city:"Dublin",name:"Holiday Inn",dates:"20 → 22 ago",nights:"2 noites",price:"R$ 2.843"},
- {city:"Doolin",name:"Ballinalacken Castle",dates:"22 → 23 ago",nights:"1 noite",price:"R$ 1.826"},
- {city:"Galway",name:"The Western Hotel",dates:"23 → 25 ago",nights:"2 noites",price:"R$ 2.910"},
- {city:"Sligo",name:"Riverside Hotel",dates:"25 → 26 ago",nights:"1 noite",price:"R$ 1.146"},
- {city:"Belfast",name:"Premier Inn Titanic Q.",dates:"26 → 28 ago",nights:"2 noites",price:"R$ 2.425"},
- {city:"Madrid · volta",name:"Hotel Europa",dates:"28 → 30 ago",nights:"2 noites",price:"US$ 546"}
+ {city:"Madrid · chegada",name:"Hotel Europa",dates:"11 → 12 ago",nights:"1 noite"},
+ {city:"Londres",name:"President Hotel",dates:"12 → 16 ago",nights:"4 noites"},
+ {city:"Edimburgo",name:"Motel One Royal",dates:"16 → 20 ago",nights:"4 noites"},
+ {city:"Dublin",name:"Holiday Inn",dates:"20 → 22 ago",nights:"2 noites"},
+ {city:"Doolin",name:"Ballinalacken Castle",dates:"22 → 23 ago",nights:"1 noite"},
+ {city:"Galway",name:"The Western Hotel",dates:"23 → 25 ago",nights:"2 noites"},
+ {city:"Sligo",name:"Riverside Hotel",dates:"25 → 26 ago",nights:"1 noite"},
+ {city:"Belfast",name:"Premier Inn Titanic Q.",dates:"26 → 28 ago",nights:"2 noites"},
+ {city:"Madrid · volta",name:"Hotel Europa",dates:"28 → 30 ago",nights:"2 noites"}
 ];
 
 const FLIGHTS=[
@@ -442,18 +621,14 @@ const TODOS=[
  ]}
 ];
 
-const MONEY=[
- {cat:"Voos low-cost (4 Ryanair)",val:"R$ 4.966"},
- {cat:"Hotéis (9 · 19 noites)",val:"R$ 26.720"},
- {cat:"Atrações & tours",val:"R$ 2.806"},
- {cat:"Pendente estimado",val:"R$ 4,9–6,7k"}
-];
+/* dados financeiros: criptografados (AES-GCM) — só a senha correta abre */
+const FIN_BLOB={"s":"UC0G3xjwKobSnaxMaedgKA==","i":"1fQ2UEFq85fLaYyR","c":"jTH2wyCRiulC/KVSAAcCxpVONvYp+lBFvbR4yebuZXBfUcdov5GT58YwZKwPfwxTxe73pwAsrqm0EIuqBLnZnQz/++TN3raHA7UJOPWtebSOCEZhkZO/fu3JjAKr7Yg3i+cLFd/Ladnhn5lL1wkHCTEap0GajTTewBHkfk6D/2pefKZcHZ38n8TV1e8oQZThU/+C9UGadEo9nDc6k9M8Upl+/CJKsEv1BcA1uHcxrEZRmUMayMSW9ZaCxkK1U/FrwL1mk2q7/uRt8pTTU2oLzPNcOh2g4xEJOQnA0SCO5BLGi+KtfC67iWMU7ZJ+YUv6yw5pwnTpqh7BC2qvmNE2D35Agnu8sfIB/VfOdlhX5kiRGSqBq7oNHOrDQ8KmlJxQ4MgZxCoOjNHyHNKRX+VSAPQF7MW+AdXRz0ojMa4YBTVJWpXGQnOjBAavw71ABm60UXj1gURgPp3ziMYoNjA0PEb3ZPHycY4qerEBl/VAjxDrLfnc44YklPx6XN4olTJo4xeZbWFfgzOpV+CegE4ufZZK5f+MH/Q2rS34k9LuYuBtGeNx41QWS/5Czm7kcTo34ez0m0MY/bhLdPj2BJY="};
+let FIN=null; /* preenchido só após desbloquear */
 
 /* ---------- RENDER ---------- */
-const zoneFlag={es:"🇪🇸",uk:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",sco:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",ie:"🇮🇪",nir:"🇬🇧"};
 function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;");}
 
-/* dias */
+/* dias (roteiro) */
 const daysEl=document.getElementById("days");
 DAYS.forEach((d,i)=>{
   const el=document.createElement("div");
@@ -474,7 +649,6 @@ DAYS.forEach((d,i)=>{
    </div></div>`;
   daysEl.appendChild(el);
 });
-/* abre o primeiro dia */
 if(daysEl.firstChild) daysEl.firstChild.classList.add("open");
 
 /* quickmap */
@@ -483,17 +657,116 @@ const qm=document.getElementById("quickmap");
   const s=document.createElement("span");s.className="qp";s.textContent=c;qm.appendChild(s);
 });
 
+/* ---------- MAPAS (Leaflet) ---------- */
+const stopByName={};
+STOPS.forEach(s=>stopByName[s.name]=s);
+function makePin(txt){return L.divIcon({className:"",html:`<div class="pin">${txt}</div>`,iconSize:[24,24],iconAnchor:[12,12]});}
+
+let routeMap=null;
+function initRouteMap(){
+  if(routeMap) return;
+  routeMap=L.map("routeMap",{scrollWheelZoom:false,attributionControl:true});
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:18, attribution:"© OpenStreetMap"
+  }).addTo(routeMap);
+  /* linhas de voo (tracejadas) */
+  FLY.forEach(([a,b])=>{
+    const p1=stopByName[a],p2=stopByName[b];
+    if(p1&&p2) L.polyline([[p1.lat,p1.lng],[p2.lat,p2.lng]],
+      {color:"#1c3d5a",weight:2.5,dashArray:"6 7",opacity:.85}).addTo(routeMap);
+  });
+  /* linhas de carro (contínuas) */
+  DRIVE.forEach(([a,b])=>{
+    const p1=stopByName[a],p2=stopByName[b];
+    if(p1&&p2) L.polyline([[p1.lat,p1.lng],[p2.lat,p2.lng]],
+      {color:"#5b7553",weight:3.5,opacity:.9}).addTo(routeMap);
+  });
+  /* pinos numerados */
+  STOPS.forEach(s=>{
+    L.marker([s.lat,s.lng],{icon:makePin(s.n)}).addTo(routeMap)
+     .bindPopup(`<b>${s.n}. ${s.name}</b>`);
+  });
+  routeMap.fitBounds(STOPS.map(s=>[s.lat,s.lng]),{padding:[30,30]});
+}
+
+/* ---------- CALENDÁRIO ---------- */
+const dayByNum={};
+DAYS.forEach((d,i)=>{dayByNum[parseInt(d.d,10)]=i;});
+const calEl=document.getElementById("calGrid");
+["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"].forEach(h=>{
+  const c=document.createElement("div");c.className="cal-hd";c.textContent=h;calEl.appendChild(c);
+});
+/* agosto/2026: 1º dia cai no sábado (getDay 6) */
+const firstDow=new Date(2026,7,1).getDay();
+for(let i=0;i<firstDow;i++){
+  const c=document.createElement("div");c.className="cal-cell empty";calEl.appendChild(c);
+}
+for(let dnum=1;dnum<=31;dnum++){
+  const c=document.createElement("div");
+  const idx=dayByNum[dnum];
+  if(idx!==undefined){
+    const d=DAYS[idx];
+    c.className="cal-cell trip "+d.zone;
+    c.innerHTML=`<div class="cc-top"><span class="cc-num">${dnum}</span><span class="cc-flag">${d.flag}</span></div>
+                 <div class="cc-lbl">${esc(d.short)}</div>`;
+    c.addEventListener("click",()=>openDay(idx));
+  }else{
+    c.className="cal-cell off";
+    c.innerHTML=`<div class="cc-top"><span class="cc-num">${dnum}</span></div>`;
+  }
+  calEl.appendChild(c);
+}
+
+/* ---------- MODAL DETALHE DO DIA ---------- */
+let miniMap=null;
+function openDay(idx){
+  const d=DAYS[idx];
+  document.getElementById("mD").textContent=d.d;
+  document.getElementById("mM").textContent=d.m+" · "+d.dow;
+  document.getElementById("mCity").textContent=d.flag+" "+d.city;
+  document.getElementById("mAct").textContent=d.act;
+  const meta=document.getElementById("mMeta");
+  meta.innerHTML=`${d.move?`<span class="tag move">✈ ${esc(d.move)}</span>`:""}
+     <span class="tag sleep">🛏 ${esc(d.sleep)}</span>
+     ${d.book?`<span class="tag book">★ ${esc(d.book)}</span>`:""}`;
+  document.getElementById("modalBack").classList.add("open");
+  /* (re)cria o mini-mapa */
+  if(miniMap){miniMap.remove();miniMap=null;}
+  setTimeout(()=>{
+    miniMap=L.map("miniMap",{scrollWheelZoom:false,attributionControl:false,zoomControl:false});
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18}).addTo(miniMap);
+    L.marker([d.lat,d.lng],{icon:makePin(d.d)}).addTo(miniMap);
+    miniMap.setView([d.lat,d.lng],d.city.includes("Highlands")||d.short==="Causeway"||d.short==="Connem."?8:11);
+    miniMap.invalidateSize();
+  },80);
+}
+function closeDay(){
+  document.getElementById("modalBack").classList.remove("open");
+  if(miniMap){miniMap.remove();miniMap=null;}
+}
+document.getElementById("modalBack").addEventListener("click",(e)=>{
+  if(e.target.id==="modalBack") closeDay();
+});
+
 /* hotéis */
 const hEl=document.getElementById("hotels");
-HOTELS.forEach(h=>{
+HOTELS.forEach((h,i)=>{
   const el=document.createElement("div");el.className="stamp-card";
   el.innerHTML=`<div class="ok-stamp">RESERVADO</div>
     <div class="sc-city">${esc(h.city)}</div>
     <div class="sc-name">${esc(h.name)}</div>
     <div class="sc-dates">${esc(h.dates)}</div>
-    <div class="sc-foot"><span class="sc-nights">${esc(h.nights)}</span><span class="sc-price">${esc(h.price)}</span></div>`;
+    <div class="sc-foot"><span class="sc-nights">${esc(h.nights)}</span>
+      <span class="sc-price locked" id="hprice-${i}">🔒 •••</span></div>`;
   hEl.appendChild(el);
 });
+function updateHotelPrices(){
+  if(!FIN) return;
+  HOTELS.forEach((h,i)=>{
+    const el=document.getElementById("hprice-"+i);
+    if(el){el.textContent=FIN.hotelPrices[i]||"—";el.classList.remove("locked");}
+  });
+}
 
 /* voos */
 const fEl=document.getElementById("flights");
@@ -545,13 +818,11 @@ function renderMine(){
     row.innerHTML=`<div class="box">${it.done?"✓":""}</div>
       <div class="todo-body"><div class="todo-txt"></div></div>
       <button class="todo-del" title="Remover">×</button>`;
-    row.querySelector(".todo-txt").textContent=it.t;   /* textContent = seguro contra HTML */
-    /* marcar/desmarcar: um único listener na linha */
+    row.querySelector(".todo-txt").textContent=it.t;
     row.addEventListener("click",(e)=>{
       if(e.target.classList.contains("todo-del"))return;
       it.done=!it.done;saveMine();renderMine();
     });
-    /* remover */
     row.querySelector(".todo-del").addEventListener("click",(e)=>{
       e.stopPropagation();
       mine.splice(i,1);saveMine();renderMine();
@@ -569,12 +840,60 @@ function addMine(){
 }
 renderMine();
 
-/* money */
-const mEl=document.getElementById("money");
-MONEY.forEach(m=>{
-  const el=document.createElement("div");el.className="money-row";
-  el.innerHTML=`<span class="m-cat">${esc(m.cat)}</span><span class="m-val">${esc(m.val)}</span>`;
-  mEl.appendChild(el);
+/* ---------- FINANCEIRO (descriptografia) ---------- */
+function b64ToBuf(b64){
+  const bin=atob(b64);const u=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  return u.buffer;
+}
+async function decryptFinance(password){
+  const salt=b64ToBuf(FIN_BLOB.s), iv=b64ToBuf(FIN_BLOB.i), data=b64ToBuf(FIN_BLOB.c);
+  const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey(
+    {name:"PBKDF2",salt,iterations:150000,hash:"SHA-256"},
+    km,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const plain=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,data);
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+async function tryUnlock(){
+  const inp=document.getElementById("finPass");
+  const err=document.getElementById("finErr");
+  const pw=inp.value;
+  if(!pw){err.textContent="Digite a senha.";return;}
+  err.textContent="Verificando…";
+  try{
+    FIN=await decryptFinance(pw);
+    renderFinance();
+    document.getElementById("finLock").style.display="none";
+    document.getElementById("finContent").style.display="block";
+    updateHotelPrices();
+    err.textContent="";inp.value="";
+  }catch(e){
+    err.textContent="Senha incorreta.";
+    inp.value="";inp.focus();
+  }
+}
+function renderFinance(){
+  if(!FIN) return;
+  document.getElementById("finTotal").textContent=FIN.total;
+  document.getElementById("finSub").textContent=FIN.sub;
+  const mEl=document.getElementById("money");
+  mEl.innerHTML="";
+  FIN.money.forEach(m=>{
+    const el=document.createElement("div");el.className="money-row";
+    el.innerHTML=`<span class="m-cat">${esc(m.cat)}</span><span class="m-val">${esc(m.val)}</span>`;
+    mEl.appendChild(el);
+  });
+}
+document.getElementById("finLockAgain").addEventListener("click",()=>{
+  FIN=null;
+  document.getElementById("finContent").style.display="none";
+  document.getElementById("finLock").style.display="block";
+  /* re-bloqueia os preços dos hotéis */
+  HOTELS.forEach((h,i)=>{
+    const el=document.getElementById("hprice-"+i);
+    if(el){el.textContent="🔒 •••";el.classList.add("locked");}
+  });
 });
 
 /* countdown */
@@ -600,8 +919,12 @@ document.querySelectorAll(".nav-btn").forEach(b=>{
     b.classList.add("active");
     document.getElementById(b.dataset.p).classList.add("active");
     window.scrollTo({top:0,behavior:"smooth"});
+    if(b.dataset.p==="roteiro"){initRouteMap();setTimeout(()=>routeMap&&routeMap.invalidateSize(),100);}
   });
 });
+
+/* inicia o mapa do roteiro (aba inicial) */
+window.addEventListener("load",()=>{initRouteMap();setTimeout(()=>routeMap&&routeMap.invalidateSize(),200);});
 </script>
 </body>
 </html>
